@@ -4,20 +4,50 @@ import (
 	"gorm.io/gorm"
 )
 
-type ProductsRepository struct {
+type ProductRepository interface {
+	GetAllProducts(offset, limit int, category string, priceLt float64) ([]Product, int64, error)
+}
+
+type productsRepository struct {
 	db *gorm.DB
 }
 
-func NewProductsRepository(db *gorm.DB) *ProductsRepository {
-	return &ProductsRepository{
+func NewProductsRepository(db *gorm.DB) ProductRepository {
+	return &productsRepository{
 		db: db,
 	}
 }
 
-func (r *ProductsRepository) GetAllProducts() ([]Product, error) {
+func (r *productsRepository) GetAllProducts(offset, limit int, category string, priceLt float64) ([]Product, int64, error) {
 	var products []Product
-	if err := r.db.Preload("Variants").Find(&products).Error; err != nil {
-		return nil, err
+	var total int64
+
+	// 1. Build base query
+	db := r.db.Model(&Product{}).
+		Preload("Variants").
+		Preload("Category")
+
+	// 2. Apply filters
+	if category != "" {
+		db = db.Joins("Category").Where("categories.name = ?", category)
 	}
-	return products, nil
+
+	if priceLt > 0 {
+		db = db.Where("price < ?", priceLt)
+	}
+
+	// 3. Count (filtered)
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 4. Fetch with pagination
+	if err := db.
+		Offset(offset).
+		Limit(limit).
+		Find(&products).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return products, total, nil
 }

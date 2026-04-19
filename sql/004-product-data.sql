@@ -1,3 +1,9 @@
+-- Insert into categories
+INSERT INTO categories (code, name) VALUES
+('CLOTHING', 'Clothing'),
+('SHOES', 'Shoes'),
+('ACCESSORIES', 'Accessories');
+
 -- Insert 8 products
 INSERT INTO products (code, price) VALUES
 ('PROD001', 10.99),
@@ -10,6 +16,18 @@ INSERT INTO products (code, price) VALUES
 ('PROD008', 9.99);
 
 -- Insert variants for each product using product code to look up product_id
+
+-- Clothing
+UPDATE products SET category_id = (SELECT id FROM categories WHERE code = 'CLOTHING')
+WHERE code IN ('PROD001', 'PROD004', 'PROD007');
+
+-- Shoes
+UPDATE products SET category_id = (SELECT id FROM categories WHERE code = 'SHOES')
+WHERE code IN ('PROD002', 'PROD006');
+
+-- Accessories
+UPDATE products SET category_id = (SELECT id FROM categories WHERE code = 'ACCESSORIES')
+WHERE code IN ('PROD003', 'PROD005', 'PROD008');
 
 -- Product 1: 3 variants
 INSERT INTO product_variants (product_id, name, sku, price) VALUES
