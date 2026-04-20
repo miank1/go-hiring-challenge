@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/mytheresa/go-hiring-challenge/models"
 )
@@ -17,6 +18,19 @@ type Product struct {
 	Code     string  `json:"code"`
 	Price    float64 `json:"price"`
 	Category string  `json:"category"`
+}
+
+type VariantResponse struct {
+	Name  string  `json:"name"`
+	SKU   string  `json:"sku"`
+	Price float64 `json:"price"`
+}
+
+type ProductDetailResponse struct {
+	Code     string            `json:"code"`
+	Price    float64           `json:"price"`
+	Category string            `json:"category"`
+	Variants []VariantResponse `json:"variants"`
 }
 
 type CatalogHandler struct {
@@ -87,6 +101,56 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		Total:    total,
 		Products: products,
 	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *CatalogHandler) HandleGetByCode(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path // e.g. /catalog/PROD001
+	parts := strings.Split(path, "/")
+
+	if len(parts) < 3 {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	code := parts[2]
+
+	product, err := h.repo.GetByCode(code)
+	if err != nil {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+
+	variants := make([]VariantResponse, len(product.Variants))
+
+	for i, v := range product.Variants {
+		price := product.Price.InexactFloat64()
+
+		if v.Price != nil {
+			price = v.Price.InexactFloat64()
+		}
+
+		variants[i] = VariantResponse{
+			Name:  v.Name,
+			SKU:   v.SKU,
+			Price: price,
+		}
+	}
+
+	response := ProductDetailResponse{
+		Code:     product.Code,
+		Price:    product.Price.InexactFloat64(),
+		Category: product.Category.Name,
+		Variants: variants,
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
