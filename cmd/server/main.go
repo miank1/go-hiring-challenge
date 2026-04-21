@@ -42,6 +42,19 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /catalog", cat.HandleGet)
 	mux.HandleFunc("/catalog/", cat.HandleGetByCode)
+	//.HandleFunc("/categories", cat.HandleGetCategories)
+
+	mux.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			cat.HandleGetCategories(w, r)
+			return
+		}
+		if r.Method == http.MethodPost {
+			cat.HandleCreateCategory(w, r)
+			return
+		}
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	})
 
 	// Set up the HTTP server
 	srv := &http.Server{
