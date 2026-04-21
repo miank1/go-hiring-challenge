@@ -3,6 +3,7 @@ package catalog
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/mytheresa/go-hiring-challenge/models"
 )
@@ -33,27 +34,30 @@ func (h *CatalogHandler) HandleGetCategories(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *CatalogHandler) HandleCreateCategory(w http.ResponseWriter, r *http.Request) {
-	var req CategoryResponse
+	var category models.Category
 
+	// Decode request body ONCE
 	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	category := models.Category{
-		Code: req.Code,
-		Name: req.Name,
-	}
-
+	// Save to DB
 	if err := h.repo.CreateCategory(&category); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		if strings.Contains(err.Error(), "duplicate key") {
+			http.Error(w, "category already exists", http.StatusConflict)
+			return
+		}
+
+		http.Error(w, "failed to create category", http.StatusInternalServerError)
 		return
 	}
 
+	// Response
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+
+	if err := json.NewEncoder(w).Encode(category); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
