@@ -56,7 +56,7 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 
 	limitStr := r.URL.Query().Get("limit")
 
-	limit := 10 // default
+	limit := 10
 	if limitStr != "" {
 		if v, err := strconv.Atoi(limitStr); err == nil {
 			if v >= 1 && v <= 100 {
@@ -77,16 +77,12 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// _ = category
-	// _ = priceLtStr
-
 	res, total, err := h.repo.GetAllProducts(offset, limit, category, priceLt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Map response
 	products := make([]Product, len(res))
 	for i, p := range res {
 		products[i] = Product{
@@ -158,4 +154,53 @@ func (h *CatalogHandler) HandleGetByCode(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h *CatalogHandler) HandleGetProducts(w http.ResponseWriter, r *http.Request) {
+
+	offset := 0
+	limit := 10
+
+	// Parse offset
+	if val := r.URL.Query().Get("offset"); val != "" {
+		if v, err := strconv.Atoi(val); err == nil && v >= 0 {
+			offset = v
+		}
+	}
+
+	// Parse limit
+	if val := r.URL.Query().Get("limit"); val != "" {
+		if v, err := strconv.Atoi(val); err == nil {
+			if v < 1 {
+				v = 1
+			}
+			if v > 100 {
+				v = 100
+			}
+			limit = v
+		}
+	}
+
+	// Filters
+	category := r.URL.Query().Get("category")
+
+	priceLt := 0.0
+	if val := r.URL.Query().Get("price_lt"); val != "" {
+		if v, err := strconv.ParseFloat(val, 64); err == nil {
+			priceLt = v
+		}
+	}
+
+	products, total, err := h.repo.GetAllProducts(offset, limit, category, priceLt)
+	if err != nil {
+		api.ErrorResponse(w, http.StatusInternalServerError, "failed to fetch products")
+		return
+	}
+
+	response := map[string]interface{}{
+		"total":    total,
+		"products": products,
+	}
+
+	api.OKResponse(w, response)
 }

@@ -42,6 +42,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /catalog", cat.HandleGet)
 	mux.HandleFunc("/catalog/", cat.HandleGetByCode)
+	mux.HandleFunc("/catalog", cat.HandleGetProducts)
 	//.HandleFunc("/categories", cat.HandleGetCategories)
 
 	mux.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
