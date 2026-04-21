@@ -63,3 +63,44 @@ func TestHandleGetByCode(t *testing.T) {
 		t.Errorf("wrong product code")
 	}
 }
+
+func (m *mockRepo) GetAllCategories() ([]models.Category, error) {
+	return []models.Category{
+		{Code: "CLOTHING", Name: "Clothing"},
+		{Code: "SHOES", Name: "Shoes"},
+	}, nil
+
+}
+
+func TestHandleGetCategories(t *testing.T) {
+	repo := &mockRepo{}
+	handler := NewCatalogHandler(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/categories", nil)
+	w := httptest.NewRecorder()
+
+	handler.HandleGetCategories(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", res.StatusCode)
+	}
+
+	var response []CategoryResponse
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		t.Errorf("failed to decode response: %v", err)
+	}
+
+	if len(response) != 2 {
+		t.Errorf("expected 2 categories, got %d", len(response))
+	}
+
+	if response[0].Code != "CLOTHING" {
+		t.Errorf("unexpected category code")
+	}
+}
+
+func (m *mockRepo) CreateCategory(category *models.Category) error {
+	return nil
+}

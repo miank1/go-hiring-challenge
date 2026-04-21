@@ -7,6 +7,8 @@ import (
 type ProductRepository interface {
 	GetAllProducts(offset, limit int, category string, priceLt float64) ([]Product, int64, error)
 	GetByCode(code string) (*Product, error)
+	GetAllCategories() ([]Category, error)
+	CreateCategory(category *Category) error
 }
 
 type productsRepository struct {
@@ -65,4 +67,18 @@ func (r *productsRepository) GetByCode(code string) (*Product, error) {
 	}
 
 	return &product, nil
+}
+
+func (r *productsRepository) GetAllCategories() ([]Category, error) {
+	var categories []Category
+
+	if err := r.db.Find(&categories).Error; err != nil {
+		return nil, err
+	}
+
+	return categories, nil
+}
+
+func (r *productsRepository) CreateCategory(category *Category) error {
+	return r.db.Create(category).Error
 }
