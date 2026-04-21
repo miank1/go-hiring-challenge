@@ -2,8 +2,10 @@ package catalog
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/mytheresa/go-hiring-challenge/models"
@@ -102,5 +104,87 @@ func TestHandleGetCategories(t *testing.T) {
 }
 
 func (m *mockRepo) CreateCategory(category *models.Category) error {
+	if category.Code == "DUP" {
+		return errors.New("duplicate")
+	}
 	return nil
+}
+
+func TestHandleCreateCategory(t *testing.T) {
+	repo := &mockRepo{}
+	handler := NewCatalogHandler(repo)
+
+	body := `{"code":"TEST","name":"Test Category"}`
+	req := httptest.NewRequest(http.MethodPost, "/categories", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	handler.HandleCreateCategory(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusCreated {
+		t.Errorf("expected 201, got %d", res.StatusCode)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		t.Errorf("failed to decode response: %v", err)
+	}
+
+	if response["code"] != "TEST" {
+		t.Errorf("expected code TEST, got %v", response["code"])
+	}
+
+	if response["name"] != "Test Category" {
+		t.Errorf("expected name Test Category, got %v", response["name"])
+	}
+}
+
+func TestHandleCreateCategory_Duplicate(t *testing.T) {
+	repo := &mockRepo{}
+	handler := NewCatalogHandler(repo)
+
+	body := `{"code":"DUP","name":"Duplicate"}`
+	req := httptest.NewRequest(http.MethodPost, "/categories", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	handler.HandleCreateCategory(w, req)
+
+	if w.Result().StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 for duplicate")
+	}
+}
+
+func TestHandleCreateCategory_InvalidBody(t *testing.T) {
+	repo := &mockRepo{}
+	handler := NewCatalogHandler(repo)
+
+	body := `invalid-json`
+	req := httptest.NewRequest(http.MethodPost, "/categories", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	handler.HandleCreateCategory(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", res.StatusCode)
+	}
+}
+
+func TestHandleCreateCategory_Error(t *testing.T) {
+	repo := &mockRepo{}
+	handler := NewCatalogHandler(repo)
+
+	body := `{"code":"DUP","name":"Duplicate"}`
+	req := httptest.NewRequest(http.MethodPost, "/categories", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	handler.HandleCreateCategory(w, req)
+
+	res := w.Result()
+
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d", res.StatusCode)
+	}
 }

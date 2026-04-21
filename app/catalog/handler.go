@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mytheresa/go-hiring-challenge/app/api"
 	"github.com/mytheresa/go-hiring-challenge/models"
 )
 
@@ -65,6 +66,7 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	category := r.URL.Query().Get("category")
+
 	priceLtStr := r.URL.Query().Get("price_lt")
 
 	priceLt := 0.0
@@ -121,7 +123,7 @@ func (h *CatalogHandler) HandleGetByCode(w http.ResponseWriter, r *http.Request)
 
 	product, err := h.repo.GetByCode(code)
 	if err != nil {
-		http.Error(w, "product not found", http.StatusNotFound)
+		api.ErrorResponse(w, http.StatusNotFound, "product not found")
 		return
 	}
 
@@ -148,7 +150,7 @@ func (h *CatalogHandler) HandleGetByCode(w http.ResponseWriter, r *http.Request)
 		Variants: variants,
 	}
 
-	w.WriteHeader(http.StatusOK)
+	api.OKResponse(w, response)
 
 	w.Header().Set("Content-Type", "application/json")
 

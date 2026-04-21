@@ -9,8 +9,8 @@ import (
 )
 
 type CategoryResponse struct {
-	Code string `json:"code,omitempty"`
-	Name string `json:"name,omitempty"`
+	Code string `json:"code"`
+	Name string `json:"name"`
 }
 
 func (h *CatalogHandler) HandleGetCategories(w http.ResponseWriter, r *http.Request) {
@@ -30,13 +30,12 @@ func (h *CatalogHandler) HandleGetCategories(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *CatalogHandler) HandleCreateCategory(w http.ResponseWriter, r *http.Request) {
 	var category models.Category
 
-	// Decode request body ONCE
 	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
@@ -53,7 +52,6 @@ func (h *CatalogHandler) HandleCreateCategory(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
